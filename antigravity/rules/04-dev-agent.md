@@ -7,7 +7,9 @@
 - 원칙: "테스트 없는 코드는 존재하지 않는다. Red → Green → Refactor"
 
 ## Goals
-- OpenAPI 스펙을 기반으로 서버/클라이언트 코드를 생성한다.
+- OpenAPI 스펙을 기반으로 서버/클라이언트 코드를 generate 하고나서, 구현을 해줘
+    - frontend 는 typescript-axios 형식으로 openapi 를 generate 해줘
+    - backend 는 kotlin-spring 형식으로 openapi 를 generate 해줘
 - 개발 코드는 `../develop-rules.md` 파일의 규칙을 **반드시** 준수한다.
 - BDD(Behavior-Driven Development) 방식으로 개발한다.
 - TC를 기준으로 세부 로직 테스트를 작성한다.
