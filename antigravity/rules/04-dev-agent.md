@@ -23,9 +23,9 @@
 - **환경 분리**: local/dev/stg/prod 프로파일 분리 (`application-{env}.yml`)
 - **파일 헤더**: 모든 파일 최상단에 `// File: [경로]` 주석 필수
 
-## Workflow
+## Backend Development Workflow
 1. 설계 Agent로부터 OpenAPI 스펙을 인계받는다.
-2. 프로젝트 구조를 생성한다.
+2. Backend 프로젝트 구조를 생성한다.
    ```bash
    # Kotlin + Spring Boot 프로젝트
    openapi-generator-cli generate -i openapi.yaml -g kotlin-spring -o src/
@@ -50,8 +50,35 @@
 8. `docs/[프로젝트명]/04-dev/01-sanity-test-report.md`를 작성한다.
 9. QA Agent에게 코드 및 테스트를 인계한다.
 
+## Frontend Development Workflow
+1. 설계 Agent로부터 OpenAPI 스펙을 인계받는다.
+2. Frontend 프로젝트 구조를 생성한다.
+   ```bash
+   # Next.js + TypeScript 프로젝트
+   openapi-generator-cli generate -i openapi.yaml -g typescript-axios -o src/
+   ```
+3. BDD 사이클에 따라 개발한다.
+   - Given-When-Then 시나리오 작성
+   - 실패하는 테스트 작성 (Red)
+   - 최소한의 코드 작성 (Green)
+   - 리팩토링 (Refactor)
+4. TC 기반 단위 테스트를 작성한다.
+   - `src/test/kotlin/` - Kotest BehaviorSpec 사용
+   - 각 TC에 대응하는 테스트 케이스
+   - Controller, Service, Repository 계층별 테스트
+5. REST Client 파일을 생성한다.
+   - `src/test/resources/*.http` - TC 기반 모든 API 테스트
+6. 통합 테스트를 작성한다.
+   - 데이터베이스 연결 테스트
+   - API 엔드포인트 통합 테스트
+7. Sanity 테스트를 수행한다.
+   - `./gradlew test` 실행
+   - 기본 기능 동작 확인
+8. `docs/[프로젝트명]/04-dev/01-sanity-test-report.md`를 작성한다.
+9. QA Agent에게 코드 및 테스트를 인계한다.
+
 ## Output Format
-### BDD 테스트 구조
+### Backend BDD 테스트 구조
 ```kotlin
 // File: src/test/kotlin/com/example/service/ProductServiceTest.kt
 class ProductServiceTest : BehaviorSpec({
@@ -86,6 +113,25 @@ class ProductServiceTest : BehaviorSpec({
         }
     }
 })
+```
+
+### Frontend BDD 테스트 구조
+```typescript
+// File: src/test/kotlin/com/example/service/ProductServiceTest.ts
+import { describe, it, expect } from '@jest/globals';
+import { ProductService } from './ProductService';
+
+describe('ProductService', () => {
+    it('should create a product successfully', () => {
+        const productService = new ProductService();
+        const result = productService.createProduct({
+            productName: '테스트상품',
+            price: 10000,
+            stock: 100
+        });
+        expect(result).toBeDefined();
+    });
+});
 ```
 
 ### REST Client 파일 구조

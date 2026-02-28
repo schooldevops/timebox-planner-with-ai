@@ -1,0 +1,226 @@
+### Timebox Planner API REST Client
+### File: backend-timebox/src/test/resources/api-test.http
+
+@baseUrl = http://localhost:8080
+@accessToken = {{loginResponse.response.body.$.accessToken}}
+@refreshToken = {{loginResponse.response.body.$.refreshToken}}
+
+### ── AUTH ───────────────────────────────────────────────
+
+### TC-001: 회원 가입 (정상)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test1234!",
+  "name": "홍길동"
+}
+
+###
+
+### TC-002: 회원 가입 (이메일 중복)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test1234!",
+  "name": "중복사용자"
+}
+
+###
+
+### TC-003: 로그인 (정상)
+# @name loginResponse
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test1234!"
+}
+
+###
+
+### TC-004: 토큰 갱신
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### 로그아웃
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}
+
+###
+
+### ── TAGS ───────────────────────────────────────────────
+
+### 태그 생성
+POST {{baseUrl}}/api/v1/tags
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "개발",
+  "color": "#3B82F6"
+}
+
+###
+
+### 태그 목록 조회
+GET {{baseUrl}}/api/v1/tags
+Authorization: Bearer {{accessToken}}
+
+###
+
+### ── TASKS ──────────────────────────────────────────────
+
+### TC-005: 할 일 생성 (정상)
+POST {{baseUrl}}/api/v1/tasks
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "API 개발 완성",
+  "description": "Timebox Planner 백엔드 API 개발",
+  "priority": "HIGH",
+  "estimatedMinutes": 60,
+  "tagIds": []
+}
+
+###
+
+### 할 일 목록 조회
+GET {{baseUrl}}/api/v1/tasks?status=TODO&page=0&size=10&sort=createdAt
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 할 일 단건 조회
+GET {{baseUrl}}/api/v1/tasks/1
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 할 일 수정
+PUT {{baseUrl}}/api/v1/tasks/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "API 개발 완성 (수정)",
+  "priority": "HIGH",
+  "estimatedMinutes": 90
+}
+
+###
+
+### TC-008: 완료된 할 일 삭제
+DELETE {{baseUrl}}/api/v1/tasks/1
+Authorization: Bearer {{accessToken}}
+
+###
+
+### ── TIMEBOXES ───────────────────────────────────────────
+
+### TC-009: Timebox 블록 생성 (정상)
+POST {{baseUrl}}/api/v1/timeboxes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "taskId": 1,
+  "date": "2026-02-28",
+  "startTime": "09:00",
+  "endTime": "10:00"
+}
+
+###
+
+### TC-010: Timebox 중복 생성
+POST {{baseUrl}}/api/v1/timeboxes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "date": "2026-02-28",
+  "startTime": "09:30",
+  "endTime": "10:30"
+}
+
+###
+
+### Timebox 날짜별 조회
+GET {{baseUrl}}/api/v1/timeboxes?date=2026-02-28
+Authorization: Bearer {{accessToken}}
+
+###
+
+### ── TIMER / SESSION ────────────────────────────────────
+
+### TC-011: 타이머 시작
+POST {{baseUrl}}/api/v1/timeboxes/1/timer/start
+Authorization: Bearer {{accessToken}}
+
+###
+
+### TC-012: 중복 타이머 시작
+POST {{baseUrl}}/api/v1/timeboxes/2/timer/start
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 타이머 일시정지
+POST {{baseUrl}}/api/v1/sessions/1/pause
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 타이머 재개
+POST {{baseUrl}}/api/v1/sessions/1/resume
+Authorization: Bearer {{accessToken}}
+
+###
+
+### TC-013: 타이머 완료 (Task 완료 처리)
+POST {{baseUrl}}/api/v1/sessions/1/complete
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "confirmDone": true
+}
+
+###
+
+### TC-015: 세션 회고 작성
+POST {{baseUrl}}/api/v1/sessions/1/retrospective
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "rating": 4,
+  "memo": "집중이 잘 됐습니다. 목표를 달성했습니다."
+}
+
+###
+
+### ── DASHBOARD ──────────────────────────────────────────
+
+### TC-016: 일별 대시보드
+GET {{baseUrl}}/api/v1/dashboard/daily?date=2026-02-28
+Authorization: Bearer {{accessToken}}
+
+###
+
+### TC-017: 주별 대시보드
+GET {{baseUrl}}/api/v1/dashboard/weekly?startDate=2026-02-22
+Authorization: Bearer {{accessToken}}
+
+###

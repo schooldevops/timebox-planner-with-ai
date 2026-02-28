@@ -1,0 +1,12 @@
+# application.yml
+spring:
+  profiles:
+    active: local
+  application:
+    name: timebox-planner
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
