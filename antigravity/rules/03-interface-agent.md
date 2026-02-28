@@ -8,6 +8,11 @@
 
 ## Goals
 - OpenAPI Specification (OAS) 3.0을 생성한다.
+  - OAS 3.0 완전 준수
+  - 모든 API 엔드포인트 정의
+  - Components/Schemas 재사용 최대화
+  - Security Schemes (JWT Bearer)
+  - Examples 포함
 - MSA(Microservices Architecture) 구성을 설계한다.
 - 기술 스택을 선정하고 정당화한다. 이때 기술 스택은 항상 최신 안정화 버전을 기준으로 작성해야한다.
 - 인프라 아키텍처를 설계한다.

@@ -1,0 +1,1114 @@
+openapi: 3.0.0
+info:
+  title: Timebox Planner API
+  version: 1.0.0
+  description: |
+    Timebox Planner 서비스의 REST API 명세.
+    시간박스 기법으로 할 일을 계획하고, 집중 타이머로 실행하며, 대시보드로 생산성을 분석합니다.
+  contact:
+    name: Timebox Planner Dev Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+  - url: https://api.timebox-planner.com/v1
+    description: Production
+
+tags:
+  - name: Auth
+    description: 인증 관련 API (회원가입, 로그인, 토큰 갱신)
+  - name: Tasks
+    description: 할 일(Task) CRUD API
+  - name: Timeboxes
+    description: Timebox 블록 관리 API
+  - name: Sessions
+    description: 집중 타이머 세션 API
+  - name: Tags
+    description: 태그 관리 API
+  - name: Dashboard
+    description: 대시보드 통계 API
+
+# ─────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────
+paths:
+
+  ## ── Auth ──────────────────────────────────────────────
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: 회원 가입
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: user@example.com
+              password: "Test1234!"
+              name: 홍길동
+      responses:
+        '201':
+          description: 회원 가입 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: 로그인
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: user@example.com
+              password: "Test1234!"
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: 로그아웃
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 로그아웃 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Access Token 갱신
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: 토큰 갱신 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  ## ── Tasks ─────────────────────────────────────────────
+  /api/v1/tasks:
+    post:
+      tags: [Tasks]
+      summary: 할 일 생성
+      operationId: createTask
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            example:
+              title: "API 개발"
+              priority: HIGH
+              estimatedMinutes: 60
+      responses:
+        '201':
+          description: 할 일 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [Tasks]
+      summary: 할 일 목록 조회
+      operationId: getTasks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/Priority'
+        - name: tagId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, priority]
+            default: createdAt
+      responses:
+        '200':
+          description: 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPage'
+
+  /api/v1/tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/TaskIdParam'
+    get:
+      tags: [Tasks]
+      summary: 할 일 단건 조회
+      operationId: getTask
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Tasks]
+      summary: 할 일 수정
+      operationId: updateTask
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Tasks]
+      summary: 할 일 삭제
+      operationId: deleteTask
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: 삭제 성공
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  ## ── Timeboxes ─────────────────────────────────────────
+  /api/v1/timeboxes:
+    post:
+      tags: [Timeboxes]
+      summary: Timebox 블록 생성
+      operationId: createTimebox
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTimeboxRequest'
+            example:
+              taskId: 1
+              date: "2026-02-28"
+              startTime: "09:00"
+              endTime: "10:00"
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeboxResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    get:
+      tags: [Timeboxes]
+      summary: Timebox 목록 조회 (날짜별)
+      operationId: getTimeboxes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-02-28"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeboxResponse'
+
+  /api/v1/timeboxes/{timeboxId}:
+    parameters:
+      - $ref: '#/components/parameters/TimeboxIdParam'
+    get:
+      tags: [Timeboxes]
+      summary: Timebox 단건 조회
+      operationId: getTimebox
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeboxResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Timeboxes]
+      summary: Timebox 시간/Task 변경
+      operationId: updateTimebox
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTimeboxRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeboxResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Timeboxes]
+      summary: Timebox 삭제
+      operationId: deleteTimebox
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: 삭제 성공
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/timeboxes/{timeboxId}/timer/start:
+    post:
+      tags: [Sessions]
+      summary: 타이머 시작
+      operationId: startTimer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TimeboxIdParam'
+      responses:
+        '200':
+          description: 타이머 시작 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  ## ── Sessions ──────────────────────────────────────────
+  /api/v1/sessions/{sessionId}/pause:
+    post:
+      tags: [Sessions]
+      summary: 타이머 일시정지
+      operationId: pauseTimer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      responses:
+        '200':
+          description: 일시정지 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+  /api/v1/sessions/{sessionId}/resume:
+    post:
+      tags: [Sessions]
+      summary: 타이머 재개
+      operationId: resumeTimer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      responses:
+        '200':
+          description: 재개 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+  /api/v1/sessions/{sessionId}/complete:
+    post:
+      tags: [Sessions]
+      summary: 타이머 완료
+      operationId: completeTimer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteSessionRequest'
+      responses:
+        '200':
+          description: 완료 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+  /api/v1/sessions/{sessionId}/cancel:
+    post:
+      tags: [Sessions]
+      summary: 타이머 취소
+      operationId: cancelTimer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      responses:
+        '200':
+          description: 취소 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+  /api/v1/sessions/{sessionId}/retrospective:
+    post:
+      tags: [Sessions]
+      summary: 세션 회고 작성
+      operationId: createRetrospective
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRetrospectiveRequest'
+            example:
+              rating: 4
+              memo: "집중이 잘 됐습니다"
+      responses:
+        '201':
+          description: 회고 작성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrospectiveResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  ## ── Tags ──────────────────────────────────────────────
+  /api/v1/tags:
+    post:
+      tags: [Tags]
+      summary: 태그 생성
+      operationId: createTag
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+            example:
+              name: "개발"
+              color: "#3B82F6"
+      responses:
+        '201':
+          description: 태그 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    get:
+      tags: [Tags]
+      summary: 태그 목록 조회
+      operationId: getTags
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagResponse'
+
+  /api/v1/tags/{tagId}:
+    parameters:
+      - $ref: '#/components/parameters/TagIdParam'
+    put:
+      tags: [Tags]
+      summary: 태그 수정
+      operationId: updateTag
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagResponse'
+
+    delete:
+      tags: [Tags]
+      summary: 태그 삭제
+      operationId: deleteTag
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: 삭제 성공
+
+  ## ── Dashboard ─────────────────────────────────────────
+  /api/v1/dashboard/daily:
+    get:
+      tags: [Dashboard]
+      summary: 일별 대시보드 조회
+      operationId: getDailyDashboard
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-02-28"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyDashboardResponse'
+
+  /api/v1/dashboard/weekly:
+    get:
+      tags: [Dashboard]
+      summary: 주별 대시보드 조회
+      operationId: getWeeklyDashboard
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-02-22"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyDashboardResponse'
+
+# ─────────────────────────────────────────────────────────
+# Components
+# ─────────────────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT Access Token. 형식: Bearer {token}"
+
+  # ── Parameters ────────────────────────────────────────
+  parameters:
+    TaskIdParam:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    TimeboxIdParam:
+      name: timeboxId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    SessionIdParam:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    TagIdParam:
+      name: tagId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 10
+        maximum: 50
+
+  # ── Schemas ───────────────────────────────────────────
+  schemas:
+
+    # Enums
+    TaskStatus:
+      type: string
+      enum: [TODO, IN_PROGRESS, DONE, CANCELLED]
+    Priority:
+      type: string
+      enum: [HIGH, MEDIUM, LOW]
+    TimeboxStatus:
+      type: string
+      enum: [PLANNED, RUNNING, PAUSED, COMPLETED, CANCELLED]
+    SessionStatus:
+      type: string
+      enum: [RUNNING, PAUSED, COMPLETED, CANCELLED]
+
+    # Auth
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+          description: 로그인 이메일 (소문자 정규화)
+        password:
+          type: string
+          minLength: 8
+          description: "8자 이상, 영문+숫자+특수문자 조합"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 3600
+
+    AccessTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        expiresIn:
+          type: integer
+          example: 3600
+
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        email:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Task
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        priority:
+          $ref: '#/components/schemas/Priority'
+          default: MEDIUM
+        estimatedMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+          multipleOf: 5
+          description: "5분 단위"
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          maxItems: 5
+
+    TaskResponse:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/Priority'
+        estimatedMinutes:
+          type: integer
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TaskPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # Timebox
+    CreateTimeboxRequest:
+      type: object
+      required: [date, startTime, endTime]
+      properties:
+        taskId:
+          type: integer
+          format: int64
+          nullable: true
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):(00|30)$'
+          description: "HH:mm 형식, 30분 단위"
+        endTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):(00|30)$'
+
+    UpdateTimeboxRequest:
+      type: object
+      properties:
+        startTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):(00|30)$'
+        endTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):(00|30)$'
+        taskId:
+          type: integer
+          format: int64
+          nullable: true
+
+    TimeboxResponse:
+      type: object
+      properties:
+        timeboxId:
+          type: integer
+          format: int64
+        taskId:
+          type: integer
+          format: int64
+          nullable: true
+        taskTitle:
+          type: string
+          nullable: true
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        status:
+          $ref: '#/components/schemas/TimeboxStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    # Session
+    SessionResponse:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+          format: int64
+        timeboxId:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/SessionStatus'
+        plannedMinutes:
+          type: integer
+        focusedMinutes:
+          type: integer
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+        pausedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CompleteSessionRequest:
+      type: object
+      required: [confirmDone]
+      properties:
+        confirmDone:
+          type: boolean
+          description: true면 연결된 Task를 DONE으로 변경
+
+    # Retrospective
+    CreateRetrospectiveRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        memo:
+          type: string
+          maxLength: 500
+
+    RetrospectiveResponse:
+      type: object
+      properties:
+        retrospectiveId:
+          type: integer
+          format: int64
+        rating:
+          type: integer
+        memo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Tag
+    CreateTagRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 30
+        color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          description: "HEX 색상 코드 (#RRGGBB)"
+
+    TagResponse:
+      type: object
+      properties:
+        tagId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        color:
+          type: string
+
+    # Dashboard
+    DailyDashboardResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        totalBlocks:
+          type: integer
+        completedBlocks:
+          type: integer
+        completionRate:
+          type: number
+          format: double
+          description: "백분율 (0~100)"
+        plannedMinutes:
+          type: integer
+        focusedMinutes:
+          type: integer
+        timeboxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeboxResponse'
+
+    WeeklyDashboardResponse:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        totalFocusedMinutes:
+          type: integer
+        dailyStats:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyStat'
+        topTags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagStat'
+
+    DailyStat:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        focusedMinutes:
+          type: integer
+        completedBlocks:
+          type: integer
+
+    TagStat:
+      type: object
+      properties:
+        tagId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        color:
+          type: string
+        count:
+          type: integer
+
+    # Common
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: "에러 코드 (E001~E010)"
+        message:
+          type: string
+          description: "사용자 친화적 메시지"
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  # ── Responses ─────────────────────────────────────────
+  responses:
+    BadRequest:
+      description: 잘못된 요청 (400)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "E010"
+            message: "비밀번호는 8자 이상, 영문+숫자+특수문자 조합이어야 합니다"
+    Unauthorized:
+      description: 인증 실패 (401)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "E002"
+            message: "인증 토큰이 만료되었습니다. 다시 로그인해주세요."
+    Forbidden:
+      description: 권한 없음 (403)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "E003"
+            message: "해당 리소스에 접근 권한이 없습니다"
+    NotFound:
+      description: 리소스 없음 (404)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "E006"
+            message: "존재하지 않는 리소스입니다"
+    Conflict:
+      description: 충돌 (409)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "E004"
+            message: "해당 시간대에 이미 등록된 Timebox가 있습니다"
+    UnprocessableEntity:
+      description: 처리 불가 (422)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "E008"
+            message: "회고는 세션 완료 후 24시간 이내에만 작성 가능합니다"
