@@ -24,82 +24,82 @@
 ```mermaid
 erDiagram
     users {
-        bigint id PK
-        varchar(255) email UK "소문자 정규화"
-        varchar(255) password "BCrypt 암호화"
-        varchar(100) name
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "사용자 ID"
+        varchar email UK "로그인 이메일"
+        varchar password "BCrypt 암호화된 비밀번호"
+        varchar name "사용자 이름"
+        timestamp created_at "가입 일시"
+        timestamp updated_at "최종 수정 일시"
     }
 
     tags {
-        bigint id PK
-        bigint user_id FK
-        varchar(30) name
-        varchar(7) color "HEX 색상 (#RRGGBB)"
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "태그 ID"
+        bigint user_id FK "소유자"
+        varchar name "태그명"
+        varchar color "HEX 색상코드"
+        timestamp created_at "생성 일시"
+        timestamp updated_at "수정 일시"
     }
 
     tasks {
-        bigint id PK
-        bigint user_id FK
-        varchar(200) title
-        text description
-        varchar(20) priority "HIGH|MEDIUM|LOW"
-        integer estimated_minutes "5분 단위"
-        varchar(20) status "TODO|IN_PROGRESS|DONE|CANCELLED"
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "할 일 ID"
+        bigint user_id FK "소유자"
+        varchar title "제목"
+        text description "설명"
+        varchar priority "우선순위 HIGH,MEDIUM,LOW"
+        integer estimated_minutes "예상 소요 분"
+        varchar status "상태 TODO,IN_PROGRESS,DONE,CANCELLED"
+        timestamp created_at "생성 일시"
+        timestamp updated_at "수정 일시"
     }
 
     task_tags {
-        bigint task_id FK
-        bigint tag_id FK
+        bigint task_id FK "할 일 참조"
+        bigint tag_id FK "태그 참조"
     }
 
     timeboxes {
-        bigint id PK
-        bigint user_id FK
-        bigint task_id FK "nullable"
-        date date
-        time start_time "30분 단위"
-        time end_time "30분 단위"
-        varchar(20) status "PLANNED|RUNNING|PAUSED|COMPLETED|CANCELLED"
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "타임박스 ID"
+        bigint user_id FK "소유자"
+        bigint task_id FK "연결된 할 일"
+        date date "날짜"
+        varchar start_time "시작 시간 HH:mm"
+        varchar end_time "종료 시간 HH:mm"
+        varchar status "상태 PLANNED,RUNNING,PAUSED,COMPLETED,CANCELLED"
+        timestamp created_at "생성 일시"
+        timestamp updated_at "수정 일시"
     }
 
     focus_sessions {
-        bigint id PK
-        bigint user_id FK
-        bigint timebox_id FK
-        varchar(20) status "RUNNING|PAUSED|COMPLETED|CANCELLED"
-        integer planned_minutes
-        integer focused_minutes "nullable, 완료 시 계산"
-        integer total_paused_minutes "기본값 0"
-        timestamp started_at
-        timestamp paused_at "nullable"
-        timestamp completed_at "nullable"
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "세션 ID"
+        bigint user_id FK "소유자"
+        bigint timebox_id FK "타임박스 참조"
+        varchar status "상태 RUNNING,PAUSED,COMPLETED,CANCELLED"
+        integer planned_minutes "계획 분"
+        integer focused_minutes "실제 집중 분"
+        integer total_paused_minutes "일시정지 누적 분"
+        timestamp started_at "시작 일시"
+        timestamp paused_at "일시정지 일시"
+        timestamp completed_at "완료 일시"
+        timestamp created_at "생성 일시"
+        timestamp updated_at "수정 일시"
     }
 
     retrospectives {
-        bigint id PK
-        bigint session_id FK UK "1:1 관계"
-        smallint rating "1~5"
-        text memo "nullable"
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "회고 ID"
+        bigint session_id FK "세션 참조"
+        smallint rating "만족도 1~5점"
+        text memo "회고 메모"
+        timestamp created_at "생성 일시"
+        timestamp updated_at "수정 일시"
     }
 
     refresh_tokens {
-        bigint id PK
-        bigint user_id FK
-        text token UK
-        timestamp expires_at
-        timestamp created_at
+        bigint id PK "토큰 ID"
+        bigint user_id FK "소유자"
+        text token UK "Refresh Token 값"
+        timestamp expires_at "만료 일시"
+        timestamp created_at "생성 일시"
     }
 
     users ||--o{ tags : "소유"
@@ -109,9 +109,9 @@ erDiagram
     users ||--o{ refresh_tokens : "보유"
     tasks ||--o{ task_tags : "포함"
     tags ||--o{ task_tags : "포함"
-    tasks ||--o{ timeboxes : "연결 (optional)"
+    tasks ||--o{ timeboxes : "연결"
     timeboxes ||--o{ focus_sessions : "실행"
-    focus_sessions ||--o| retrospectives : "회고 (1:1)"
+    focus_sessions ||--o| retrospectives : "회고"
 ```
 
 ---
